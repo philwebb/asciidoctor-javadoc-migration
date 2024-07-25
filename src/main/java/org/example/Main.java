@@ -8,14 +8,14 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 public class Main {
 
 	static final Pattern xrefPattern = Pattern.compile("xref:api:java\\/([^\\.]+)/(.*?)\\.html(#[^\\[]+)?\\[(.*?)\\]");
+
+	static final Pattern classNamePattern = Pattern.compile("`[A-Za-z\\.@][A-Za-z\\.]+`");
 
 	static final PathMatcher adocMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.adoc");
 
@@ -30,15 +30,15 @@ public class Main {
 
 	public static void migrate(Path path) {
 		try {
-			System.err.println("Considering " + path);
+			System.out.println("Considering " + path);
 			String content = Files.readString(path);
 			String replacement = replace(content);
 			if (replacement != null) {
-				System.err.println(" - writing replacements");
+				System.out.println(" - writing replacements");
 				Files.writeString(path, replacement);
 			}
 			else {
-				System.err.println(" - no replacements");
+				System.out.println(" - no replacements");
 			}
 		}
 		catch (IOException ex) {
@@ -48,11 +48,6 @@ public class Main {
 
 	public static String replace(String content) {
 		Matcher matcher = xrefPattern.matcher(content);
-		Stream<MatchResult> results = matcher.results();
-		if (results.findFirst().isEmpty()) {
-			return null;
-		}
-		matcher = matcher.reset();
 		StringBuffer result = new StringBuffer();
 		AtomicLong endIndex = new AtomicLong(0);
 		matcher.results().forEach((matchResult) -> {
@@ -60,7 +55,7 @@ public class Main {
 			String className = matchResult.group(2);
 			String anchor = matchResult.group(3) == null ? "" : matchResult.group(3);
 			String text = matchResult.group(4);
-			String xrefPath = packageName.replaceAll("/", ".") + "." + className + anchor;
+			String xrefPath = packageName.replace("/", ".") + "." + className.replace(".", "$") + anchor;
 			String expectedText = "`" + className + "`";
 			String expectedAnnotationText = "`@" + className + "`";
 			result.append(content.substring(endIndex.intValue(), matchResult.start()));
@@ -77,7 +72,7 @@ public class Main {
 			endIndex.set(matchResult.end());
 		});
 		result.append(content.substring(endIndex.intValue(), content.length()));
-		return result.toString();
+		return (!result.toString().equals(content)) ? result.toString() : null;
 	}
 
 }
