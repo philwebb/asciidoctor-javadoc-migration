@@ -17,8 +17,10 @@ public class Main {
 	static final Pattern apiLink = Pattern
 		.compile("\\{security-api-url\\}([^\\.]+)/(.*?)\\.html(#[^\\[]+)?\\[(.*?)\\]");
 
+	static int count = 0;
+
 	public static void main(String[] args) throws Exception {
-		String path = "/Users/rwinch/code/spring-projects/spring-security/main/docs/modules";
+		String path = "/Users/pwebb/projects/spring-boot/code/3.3.x/spring-boot-project/spring-boot-docs/src/docs/antora/modules";
 		PathMatcher adocMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.adoc");
 		Files.find(Paths.get(path), Integer.MAX_VALUE, (filePath, fileAttr) -> adocMatcher.matches(filePath))
 			.forEach(Main::migrateToJavadocInlineMacro);
@@ -28,28 +30,23 @@ public class Main {
 	public static void migrateToJavadocInlineMacro(Path path) {
 		try {
 			String content = Files.readString(path);
-			ReplacementResult replace = replace(content);
-			if (replace.matched) {
-				System.out.println(path);
-				Files.writeString(path, replace.replacement);
+			String replacement = replace(content);
+			if (replacement != null) {
+				Files.writeString(path, replacement);
 			}
 		}
-		catch (IOException e) {
-			throw new RuntimeException(e);
+		catch (IOException ex) {
+			throw new RuntimeException(ex);
 		}
 	}
 
-	static int count = 0;
-
-	public static ReplacementResult replace(String content) {
+	public static String replace(String content) {
 		Matcher matcher = apiLink.matcher(content);
 		Stream<MatchResult> results = matcher.results();
-
 		if (results.count() == 0) {
-			return new ReplacementResult(false, content, null);
+			return null;
 		}
 		matcher = matcher.reset();
-
 		StringBuffer result = new StringBuffer();
 		AtomicLong endIndex = new AtomicLong(0);
 		matcher.results().forEach((mr) -> {
@@ -71,15 +68,11 @@ public class Main {
 			else if (!expectedText.equals(text) && !className.equals(text)) {
 				result.append(text);
 			}
-
 			result.append("]");
 			endIndex.set(mr.end());
 		});
 		result.append(content.substring(endIndex.intValue(), content.length()));
-		return new ReplacementResult(true, content, result.toString());
-	}
-
-	record ReplacementResult(boolean matched, String original, String replacement) {
+		return result.toString();
 	}
 
 }
