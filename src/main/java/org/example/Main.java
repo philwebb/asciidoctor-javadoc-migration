@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -14,25 +15,30 @@ import java.util.stream.Stream;
 
 public class Main {
 
-	static final Pattern apiLink = Pattern
-		.compile("\\{security-api-url\\}([^\\.]+)/(.*?)\\.html(#[^\\[]+)?\\[(.*?)\\]");
+	static final Pattern xrefPattern = Pattern.compile("xref:api:java\\/([^\\.]+)/(.*?)\\.html(#[^\\[]+)?\\[(.*?)\\]");
 
-	static int count = 0;
+	static final PathMatcher adocMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.adoc");
 
 	public static void main(String[] args) throws Exception {
 		String path = "/Users/pwebb/projects/spring-boot/code/3.3.x/spring-boot-project/spring-boot-docs/src/docs/antora/modules";
-		PathMatcher adocMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.adoc");
-		Files.find(Paths.get(path), Integer.MAX_VALUE, (filePath, fileAttr) -> adocMatcher.matches(filePath))
-			.forEach(Main::migrateToJavadocInlineMacro);
-		System.out.println(count);
+		Files.find(Paths.get(path), Integer.MAX_VALUE, Main::shouldMigrate).forEach(Main::migrate);
 	}
 
-	public static void migrateToJavadocInlineMacro(Path path) {
+	private static boolean shouldMigrate(Path path, BasicFileAttributes attributes) {
+		return adocMatcher.matches(path) && !path.getFileName().toString().startsWith("nav-");
+	}
+
+	public static void migrate(Path path) {
 		try {
+			System.err.println("Considering " + path);
 			String content = Files.readString(path);
 			String replacement = replace(content);
 			if (replacement != null) {
+				System.err.println(" - writing replacements");
 				Files.writeString(path, replacement);
+			}
+			else {
+				System.err.println(" - no replacements");
 			}
 		}
 		catch (IOException ex) {
@@ -41,27 +47,26 @@ public class Main {
 	}
 
 	public static String replace(String content) {
-		Matcher matcher = apiLink.matcher(content);
+		Matcher matcher = xrefPattern.matcher(content);
 		Stream<MatchResult> results = matcher.results();
-		if (results.count() == 0) {
+		if (results.findFirst().isEmpty()) {
 			return null;
 		}
 		matcher = matcher.reset();
 		StringBuffer result = new StringBuffer();
 		AtomicLong endIndex = new AtomicLong(0);
-		matcher.results().forEach((mr) -> {
-			count++;
-			String packageName = mr.group(1);
-			String className = mr.group(2);
-			String anchor = mr.group(3) == null ? "" : mr.group(3);
+		matcher.results().forEach((matchResult) -> {
+			String packageName = matchResult.group(1);
+			String className = matchResult.group(2);
+			String anchor = matchResult.group(3) == null ? "" : matchResult.group(3);
+			String text = matchResult.group(4);
 			String xrefPath = packageName.replaceAll("/", ".") + "." + className + anchor;
-			result.append(content.substring(endIndex.intValue(), mr.start()));
+			String expectedText = "`" + className + "`";
+			String expectedAnnotationText = "`@" + className + "`";
+			result.append(content.substring(endIndex.intValue(), matchResult.start()));
 			result.append("javadoc:");
 			result.append(xrefPath);
 			result.append("[");
-			String expectedText = "`" + className + "`";
-			String expectedAnnotationText = "`@" + className + "`";
-			String text = mr.group(4);
 			if (expectedAnnotationText.equals(text)) {
 				result.append("format=annotation");
 			}
@@ -69,7 +74,7 @@ public class Main {
 				result.append(text);
 			}
 			result.append("]");
-			endIndex.set(mr.end());
+			endIndex.set(matchResult.end());
 		});
 		result.append(content.substring(endIndex.intValue(), content.length()));
 		return result.toString();
