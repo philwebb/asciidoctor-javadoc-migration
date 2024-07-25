@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,29 +48,23 @@ public class Main {
 	public static String replace(String content) {
 		Matcher matcher = xrefPattern.matcher(content);
 		StringBuffer result = new StringBuffer();
-		AtomicLong endIndex = new AtomicLong(0);
-		matcher.results().forEach((matchResult) -> {
-			String packageName = matchResult.group(1);
-			String className = matchResult.group(2);
-			String anchor = matchResult.group(3) == null ? "" : matchResult.group(3);
-			String text = matchResult.group(4);
-			String xrefPath = packageName.replace("/", ".") + "." + className.replace(".", "$") + anchor;
-			String expectedText = "`" + className + "`";
-			String expectedAnnotationText = "`@" + className + "`";
-			result.append(content.substring(endIndex.intValue(), matchResult.start()));
-			result.append("javadoc:");
-			result.append(xrefPath);
-			result.append("[");
-			if (expectedAnnotationText.equals(text)) {
-				result.append("format=annotation");
+		while (matcher.find()) {
+			String packageName = matcher.group(1);
+			String className = matcher.group(2);
+			String anchor = matcher.group(3);
+			String text = matcher.group(4);
+			String path = packageName.replace("/", ".") + "." + className.replace(".", "$")
+					+ ((anchor != null) ? anchor : "");
+			if (("`@" + className + "`").equals(text)) {
+				text = "format=annotation";
 			}
-			else if (!expectedText.equals(text) && !className.equals(text)) {
-				result.append(text);
+			else if (("`" + className + "`").equals(text) || className.equals(text)) {
+				text = "";
 			}
-			result.append("]");
-			endIndex.set(matchResult.end());
-		});
-		result.append(content.substring(endIndex.intValue(), content.length()));
+			String replacement = "javadoc:%s[%s]".formatted(path, text);
+			matcher.appendReplacement(result, replacement.replace("$", "\\$"));
+		}
+		matcher.appendTail(result);
 		return (!result.toString().equals(content)) ? result.toString() : null;
 	}
 
