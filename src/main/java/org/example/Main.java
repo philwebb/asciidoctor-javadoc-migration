@@ -46,6 +46,13 @@ public class Main {
 	}
 
 	public static String replace(String content) {
+		String result = content;
+		result = replaceXrefs(result);
+		result = replaceClassNames(result);
+		return (!result.toString().equals(content)) ? result.toString() : null;
+	}
+
+	private static String replaceXrefs(String content) {
 		Matcher matcher = xrefPattern.matcher(content);
 		StringBuffer result = new StringBuffer();
 		while (matcher.find()) {
@@ -65,7 +72,29 @@ public class Main {
 			matcher.appendReplacement(result, replacement.replace("$", "\\$"));
 		}
 		matcher.appendTail(result);
-		return (!result.toString().equals(content)) ? result.toString() : null;
+		return result.toString();
+	}
+
+	private static String replaceClassNames(String content) {
+		Matcher matcher = classNamePattern.matcher(content);
+		StringBuffer result = new StringBuffer();
+		while (matcher.find()) {
+			String name = matcher.group();
+			if (!isLikelyClassName(name)) {
+				matcher.appendReplacement(result, name);
+			}
+			else {
+				System.err.println(name);
+				matcher.appendReplacement(result, name);
+			}
+		}
+		matcher.appendTail(result);
+		return result.toString();
+	}
+
+	private static boolean isLikelyClassName(String name) {
+		return name.startsWith("org.springframework.boot.") || name.startsWith("@")
+				|| Character.isUpperCase(name.charAt(0));
 	}
 
 }
