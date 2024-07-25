@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("io.spring.javaformat") version "0.0.42"
 }
 
 group = "org.example"
