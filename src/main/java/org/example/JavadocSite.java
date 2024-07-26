@@ -154,6 +154,10 @@ class JavadocSite {
 			.replace("{version-spring-data-mongodb}", "current")
 			.replace("{version-spring-data-rest}", "current")
 			.replace("{version-spring-data-r2dbc}", "current")
+			.replace("{version-spring-data-cassandra}", "current")
+			.replace("{version-spring-data-couchbase}", "current")
+			.replace("{version-spring-data-elasticsearch}", "current")
+			.replace("{version-spring-data-neo4j}", "current")
 			.replace("https://docs.spring.io/spring-hateoas/docs/2.3.1",
 					"https://docs.spring.io/spring-hateoas/docs/current");
 	}

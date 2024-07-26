@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -20,20 +22,34 @@ public class Main {
 
 	static final PathMatcher adocMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.adoc");
 
-	private static final Map<String, String> COMMON_ANNOTATION_NAMES = Map.of(//
-			"Controller", "org.springframework.stereotype.Controller", //
-			"RequestMapping", "org.springframework.web.bind.annotation.RequestMapping", //
-			"Configuration", "org.springframework.context.annotation.Configuration", //
-			"Value", "org.springframework.beans.factory.annotation.Value", //
-			"Entity", "jakarta.persistence.Entity", //
-			"PropertySource", "org.springframework.context.annotation.PropertySource");
+	private static final Map<String, String> COMMON_ANNOTATION_NAMES;
+	static {
+		Map<String, String> names = new HashMap<>();
+		names.put("Controller", "org.springframework.stereotype.Controller");
+		names.put("Component", "org.springframework.stereotype.Component");
+		names.put("Service", "org.springframework.stereotype.Service");
+		names.put("Repository", "org.springframework.stereotype.Repository");
+		names.put("RequestMapping", "org.springframework.web.bind.annotation.RequestMapping");
+		names.put("Configuration", "org.springframework.context.annotation.Configuration");
+		names.put("Value", "org.springframework.beans.factory.annotation.Value");
+		names.put("Entity", "jakarta.persistence.Entity");
+		names.put("PropertySource", "org.springframework.context.annotation.PropertySource");
+		names.put("DurationUnit", "org.springframework.boot.convert.DurationUnit");
+		names.put("Endpoint", "org.springframework.boot.actuate.endpoint.annotation.Endpoint");
+		names.put("Order", "org.springframework.core.annotation.Order");
+		COMMON_ANNOTATION_NAMES = Collections.unmodifiableMap(names);
+	}
 
-	private static final Map<String, String> COMMON_CLASS_NAMES = Map.of(//
-			"Environment", "org.springframework.core.env.Environment", //
-			"Filter", "jakarta.servlet.Filter", //
-			"Binder", "org.springframework.boot.context.properties.bind.Binder", //
-			"ReactorResourceFactory", "org.springframework.http.client.ReactorResourceFactory", //
-			"PropertySource", "org.springframework.core.env.PropertySource");
+	private static final Map<String, String> COMMON_CLASS_NAMES;
+	static {
+		Map<String, String> names = new HashMap<>();
+		names.put("Environment", "org.springframework.core.env.Environment");
+		names.put("Filter", "jakarta.servlet.Filter");
+		names.put("Binder", "org.springframework.boot.context.properties.bind.Binder");
+		names.put("ReactorResourceFactory", "org.springframework.http.client.ReactorResourceFactory");
+		names.put("PropertySource", "org.springframework.core.env.PropertySource");
+		COMMON_CLASS_NAMES = Collections.unmodifiableMap(names);
+	}
 
 	static JavadocSite javadocSite = new JavadocSite();
 
@@ -51,7 +67,7 @@ public class Main {
 			System.out.println("Considering " + path);
 			String content = Files.readString(path);
 			String replacement = replace(content);
-			if (replacement != null) {
+			if (replacement != null && false) {
 				System.out.println(" - writing replacements");
 				Files.writeString(path, replacement);
 			}
@@ -124,7 +140,7 @@ public class Main {
 					// System.err.println("No idea about " + name);
 				}
 			}
-			matcher.appendReplacement(result, replacement);
+			matcher.appendReplacement(result, replacement.replace("$", "\\$"));
 		}
 		matcher.appendTail(result);
 		return result.toString();
