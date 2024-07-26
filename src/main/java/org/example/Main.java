@@ -22,7 +22,7 @@ public class Main {
 	static JavadocSite javadocSite = new JavadocSite();
 
 	public static void main(String[] args) throws Exception {
-		String path = "/Users/pwebb/projects/spring-boot/code/3.4.x/spring-boot-project/spring-boot-docs/src/docs/antora/modules";
+		String path = "/Users/pwebb/projects/spring-boot/code/3.3.x/spring-boot-project/spring-boot-docs/src/docs/antora/modules";
 		Files.find(Paths.get(path), Integer.MAX_VALUE, Main::shouldMigrate).forEach(Main::migrate);
 	}
 
@@ -51,7 +51,7 @@ public class Main {
 	public static String replace(String content) {
 		String result = content;
 		result = replaceXrefs(result);
-		// result = replaceClassNames(result);
+		result = replaceClassNames(result);
 		return (!result.toString().equals(content)) ? result.toString() : null;
 	}
 
