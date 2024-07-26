@@ -18,6 +18,7 @@ package org.example;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
@@ -46,7 +47,7 @@ class JavadocSite {
 	static final Path ANTORA_YAML_PATH = Path
 		.of(DIR + "spring-boot-project/spring-boot-docs/build/generated/docs/antora-yml/antora.yml");
 
-	static final Pattern ANTORA_JAVADOC_PATTERN = Pattern.compile("(url-[a-z-]+-javadoc):(.*)$");
+	static final Pattern ANTORA_JAVADOC_PATTERN = Pattern.compile("(url-.+-javadoc):(.*)$");
 
 	static final PathMatcher htmlMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.html");
 
@@ -106,13 +107,7 @@ class JavadocSite {
 
 	private void addUrl(HttpClient httpClient, String url, String location) throws Exception {
 		String searchUrl = url + "/type-search-index.js";
-		HttpRequest request = HttpRequest.newBuilder(new URI(searchUrl)).build();
-		HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
-		if (response.statusCode() != 200) {
-			throw new IllegalStateException("Bad status " + response.statusCode());
-		}
-		String body = response.body().replace("typeSearchIndex = ", "");
-		TypeSearchElement[] elements = this.reader.readValue(body, TypeSearchElement[].class);
+		TypeSearchElement[] elements = getElements(httpClient, searchUrl);
 		for (TypeSearchElement element : elements) {
 			String packageName = element.p();
 			String className = element.l().replace(".", "$");
@@ -128,11 +123,28 @@ class JavadocSite {
 
 	}
 
+	private TypeSearchElement[] getElements(HttpClient httpClient, String searchUrl)
+			throws URISyntaxException, IOException, InterruptedException {
+		if (searchUrl.startsWith("https://r2dbc.io/spec")) {
+			// No search with r2dbc
+			return R2DBC.elements();
+		}
+		HttpRequest request = HttpRequest.newBuilder(new URI(searchUrl)).build();
+		HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+		if (response.statusCode() != 200) {
+			throw new IllegalStateException("Bad status " + response.statusCode());
+		}
+		String body = response.body().replace("typeSearchIndex = ", "");
+		TypeSearchElement[] elements = this.reader.readValue(body, TypeSearchElement[].class);
+		return elements;
+	}
+
 	private String expand(String url) {
 		return url.replace("{version-spring-data-commons}", "current")
 			.replace("{version-spring-data-jpa}", "current")
 			.replace("{version-spring-data-mongodb}", "current")
 			.replace("{version-spring-data-rest}", "current")
+			.replace("{version-spring-data-r2dbc}", "current")
 			.replace("https://docs.spring.io/spring-hateoas/docs/2.3.1",
 					"https://docs.spring.io/spring-hateoas/docs/current");
 	}
