@@ -50,10 +50,13 @@ class JavadocSite {
 
 	static final PathMatcher htmlMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.html");
 
-	private Map<String, List<String>> lookup = new HashMap<>();
+	private final Map<String, List<String>> lookup = new HashMap<>();
+
+	private final ObjectReader reader;
 
 	JavadocSite() {
 		try {
+			this.reader = new ObjectMapper().reader();
 			addSite();
 			addUrls();
 		}
@@ -80,37 +83,49 @@ class JavadocSite {
 	}
 
 	private void addUrls() throws Exception {
-		ObjectMapper objectMapper = new ObjectMapper();
-		ObjectReader reader = objectMapper.reader();
+		HttpClient httpClient = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
 		List<String> yaml = Files.readAllLines(ANTORA_YAML_PATH);
 		for (String line : yaml) {
 			Matcher matcher = ANTORA_JAVADOC_PATTERN.matcher(line);
 			if (matcher.find()) {
 				String name = matcher.group(1).trim();
 				String url = expand(matcher.group(2).trim());
-				if ("spring-boot".equals(name)) {
+				if (name.startsWith("url-spring-boot-")) {
 					continue;
 				}
-				String searchUrl = url + "/type-search-index.js";
-				HttpClient httpClient = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
-				HttpRequest request = HttpRequest.newBuilder(new URI(searchUrl)).build();
-				HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
-				String body = response.body().replace("typeSearchIndex = ", "");
-				TypeSearchElement[] elements = reader.readValue(body, TypeSearchElement[].class);
-				for (TypeSearchElement element : elements) {
-					String packageName = element.p();
-					String className = element.l().replace(".", "$");
-					if (packageName != null && !packageName.isEmpty() && className != null && !className.isEmpty()) {
-						add(className, packageName + "." + className);
-						add(packageName + "." + className, packageName + "." + className);
-						if (className.contains("$")) {
-							add(className.replace("$", "."), packageName + "." + className);
-							add(packageName + "." + className.replace("$", "."), packageName + "." + className);
-						}
-					}
+				String location = "{" + name + "}/";
+				try {
+					addUrl(httpClient, url, location);
+				}
+				catch (Exception ex) {
+					throw new IllegalStateException("Unable to add " + url, ex);
 				}
 			}
 		}
+	}
+
+	private void addUrl(HttpClient httpClient, String url, String location) throws Exception {
+		String searchUrl = url + "/type-search-index.js";
+		HttpRequest request = HttpRequest.newBuilder(new URI(searchUrl)).build();
+		HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+		if (response.statusCode() != 200) {
+			throw new IllegalStateException("Bad status " + response.statusCode());
+		}
+		String body = response.body().replace("typeSearchIndex = ", "");
+		TypeSearchElement[] elements = this.reader.readValue(body, TypeSearchElement[].class);
+		for (TypeSearchElement element : elements) {
+			String packageName = element.p();
+			String className = element.l().replace(".", "$");
+			if (packageName != null && !packageName.isEmpty() && className != null && !className.isEmpty()) {
+				add(className, location + packageName + "." + className);
+				add(packageName + "." + className, location + packageName + "." + className);
+				if (className.contains("$")) {
+					add(className.replace("$", "."), location + packageName + "." + className);
+					add(packageName + "." + className.replace("$", "."), location + packageName + "." + className);
+				}
+			}
+		}
+
 	}
 
 	private String expand(String url) {

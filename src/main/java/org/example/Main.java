@@ -8,6 +8,7 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,6 +19,16 @@ public class Main {
 	static final Pattern classNamePattern = Pattern.compile("([\\s\\n])`([A-Za-z\\.@][A-Za-z\\.]+)`");
 
 	static final PathMatcher adocMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.adoc");
+
+	private static final Map<String, String> COMMON_ANNOTATION_NAMES = Map.of(//
+			"Controller", "org.springframework.stereotype.Controller", //
+			"RequestMapping", "org.springframework.web.bind.annotation.RequestMapping", //
+			"Configuration", "org.springframework.context.annotation.Configuration", //
+			"Value", "org.springframework.beans.factory.annotation.Value");
+
+	private static final Map<String, String> COMMON_CLASS_NAMES = Map.of(//
+			"Environment", "org.springframework.core.env.Environment", //
+			"Filter", "jakarta.servlet.Filter");
 
 	static JavadocSite javadocSite = new JavadocSite();
 
@@ -88,6 +99,10 @@ public class Main {
 				boolean annotation = name.startsWith("@");
 				if (annotation) {
 					name = name.substring(1);
+					name = COMMON_ANNOTATION_NAMES.getOrDefault(name, name);
+				}
+				else {
+					name = COMMON_CLASS_NAMES.getOrDefault(name, name);
 				}
 				List<String> lookup = javadocSite.lookup(name);
 				if (lookup != null) {
