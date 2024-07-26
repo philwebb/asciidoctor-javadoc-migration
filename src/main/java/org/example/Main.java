@@ -24,11 +24,16 @@ public class Main {
 			"Controller", "org.springframework.stereotype.Controller", //
 			"RequestMapping", "org.springframework.web.bind.annotation.RequestMapping", //
 			"Configuration", "org.springframework.context.annotation.Configuration", //
-			"Value", "org.springframework.beans.factory.annotation.Value");
+			"Value", "org.springframework.beans.factory.annotation.Value", //
+			"Entity", "jakarta.persistence.Entity", //
+			"PropertySource", "org.springframework.context.annotation.PropertySource");
 
 	private static final Map<String, String> COMMON_CLASS_NAMES = Map.of(//
 			"Environment", "org.springframework.core.env.Environment", //
-			"Filter", "jakarta.servlet.Filter");
+			"Filter", "jakarta.servlet.Filter", //
+			"Binder", "org.springframework.boot.context.properties.bind.Binder", //
+			"ReactorResourceFactory", "org.springframework.http.client.ReactorResourceFactory", //
+			"PropertySource", "org.springframework.core.env.PropertySource");
 
 	static JavadocSite javadocSite = new JavadocSite();
 
@@ -96,6 +101,9 @@ public class Main {
 			String name = matcher.group(2);
 			String replacement = matcher.group();
 			if (isLikelyClassName(name)) {
+				if (name.endsWith("!!")) {
+					return name.substring(0, name.length() - 2);
+				}
 				boolean annotation = name.startsWith("@");
 				if (annotation) {
 					name = name.substring(1);

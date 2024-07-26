@@ -104,7 +104,6 @@ class JavadocSite {
 				}
 			}
 		}
-		addUrl(httpClient, "https://docs.oracle.com/en/java/javase/17/docs/api/", "{url-javase-javadoc}");
 	}
 
 	private void addUrl(HttpClient httpClient, String url, String location) throws Exception {
