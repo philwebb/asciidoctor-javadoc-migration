@@ -16,6 +16,6 @@
 
 package org.example;
 
-public record TypeSearchElement(String p, String l, String u, String url) {
+public record TypeSearchElement(String p, String l, String m, String u, String url) {
 
 }

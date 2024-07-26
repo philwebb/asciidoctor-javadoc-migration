@@ -34,7 +34,7 @@ public class R2DBC {
 
 	static TypeSearchElement[] elements() {
 		return classes.stream()
-			.map((name) -> new TypeSearchElement("io.r2dbc.spi", name, null, null))
+			.map((name) -> new TypeSearchElement("io.r2dbc.spi", name, null, null, null))
 			.toArray(TypeSearchElement[]::new);
 	}
 

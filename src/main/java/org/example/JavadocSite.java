@@ -24,6 +24,7 @@ import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -103,6 +104,7 @@ class JavadocSite {
 				}
 			}
 		}
+		addUrl(httpClient, "https://docs.oracle.com/en/java/javase/17/docs/api/", "{url-javase-javadoc}");
 	}
 
 	private void addUrl(HttpClient httpClient, String url, String location) throws Exception {
@@ -129,14 +131,22 @@ class JavadocSite {
 			// No search with r2dbc
 			return R2DBC.elements();
 		}
+		String body = getElementsBody(httpClient, searchUrl).replace("typeSearchIndex = ", "");
+		TypeSearchElement[] elements = this.reader.readValue(body, TypeSearchElement[].class);
+		return elements;
+	}
+
+	private String getElementsBody(HttpClient httpClient, String searchUrl)
+			throws URISyntaxException, IOException, InterruptedException {
+		if (searchUrl.startsWith("https://javadoc.io/doc/org.flywaydb/flyway-core")) {
+			return new String(getClass().getResourceAsStream("/flyway.site").readAllBytes(), StandardCharsets.UTF_8);
+		}
 		HttpRequest request = HttpRequest.newBuilder(new URI(searchUrl)).build();
 		HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 		if (response.statusCode() != 200) {
 			throw new IllegalStateException("Bad status " + response.statusCode());
 		}
-		String body = response.body().replace("typeSearchIndex = ", "");
-		TypeSearchElement[] elements = this.reader.readValue(body, TypeSearchElement[].class);
-		return elements;
+		return response.body();
 	}
 
 	private String expand(String url) {
