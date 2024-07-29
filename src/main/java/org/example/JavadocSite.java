@@ -24,7 +24,6 @@ import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -107,7 +106,8 @@ class JavadocSite {
 	}
 
 	private void addUrl(HttpClient httpClient, String url, String location) throws Exception {
-		String searchUrl = url + "/type-search-index.js";
+		String searchUrl = url.replace("https://javadoc.io/doc/", "https://javadoc.io/static/")
+				+ "/type-search-index.js";
 		TypeSearchElement[] elements = getElements(httpClient, searchUrl);
 		for (TypeSearchElement element : elements) {
 			String packageName = element.p();
@@ -137,9 +137,6 @@ class JavadocSite {
 
 	private String getElementsBody(HttpClient httpClient, String searchUrl)
 			throws URISyntaxException, IOException, InterruptedException {
-		if (searchUrl.startsWith("https://javadoc.io/doc/org.flywaydb/flyway-core")) {
-			return new String(getClass().getResourceAsStream("/flyway.site").readAllBytes(), StandardCharsets.UTF_8);
-		}
 		HttpRequest request = HttpRequest.newBuilder(new URI(searchUrl)).build();
 		HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 		if (response.statusCode() != 200) {
