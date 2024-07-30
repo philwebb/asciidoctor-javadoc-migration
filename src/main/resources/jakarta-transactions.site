@@ -1,0 +1,21 @@
+typeSearchIndex = [
+{"p": "jakarta.transaction", "l": "HeuristicCommitException"},
+{"p": "jakarta.transaction", "l": "HeuristicMixedException"},
+{"p": "jakarta.transaction", "l": "HeuristicRollbackException"},
+{"p": "jakarta.transaction", "l": "InvalidTransactionException"},
+{"p": "jakarta.transaction", "l": "NotSupportedException"},
+{"p": "jakarta.transaction", "l": "RollbackException"},
+{"p": "jakarta.transaction", "l": "Status"},
+{"p": "jakarta.transaction", "l": "Synchronization"},
+{"p": "jakarta.transaction", "l": "SystemException"},
+{"p": "jakarta.transaction", "l": "Transaction"},
+{"p": "jakarta.transaction", "l": "Transactional"},
+{"p": "jakarta.transaction", "l": "Transactional.TxType"},
+{"p": "jakarta.transaction", "l": "TransactionalException"},
+{"p": "jakarta.transaction", "l": "TransactionManager"},
+{"p": "jakarta.transaction", "l": "TransactionRequiredException"},
+{"p": "jakarta.transaction", "l": "TransactionRolledbackException"},
+{"p": "jakarta.transaction", "l": "TransactionScoped"},
+{"p": "jakarta.transaction", "l": "TransactionSynchronizationRegistry"},
+{"p": "jakarta.transaction", "l": "UserTransaction"}
+]

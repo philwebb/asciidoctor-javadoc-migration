@@ -48,6 +48,8 @@ public class Main {
 		names.put("Binder", "org.springframework.boot.context.properties.bind.Binder");
 		names.put("ReactorResourceFactory", "org.springframework.http.client.ReactorResourceFactory");
 		names.put("PropertySource", "org.springframework.core.env.PropertySource");
+		names.put("DataSource", "javax.sql.DataSource");
+		names.put("RestClient", "org.springframework.web.client.RestClient");
 		COMMON_CLASS_NAMES = Collections.unmodifiableMap(names);
 	}
 

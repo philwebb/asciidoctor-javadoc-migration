@@ -24,6 +24,7 @@ import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -137,6 +138,16 @@ class JavadocSite {
 
 	private String getElementsBody(HttpClient httpClient, String searchUrl)
 			throws URISyntaxException, IOException, InterruptedException {
+		if (searchUrl.startsWith("https://jakarta.ee/specifications/transactions")) {
+			return new String(getClass().getResourceAsStream("/jakarta-transactions.site").readAllBytes(),
+					StandardCharsets.UTF_8);
+		}
+		if (searchUrl.startsWith("https://jakarta.ee/specifications/dependency-injection")) {
+			return new String(getClass().getResourceAsStream("/jakarta-injection.site").readAllBytes(),
+					StandardCharsets.UTF_8);
+		}
+		searchUrl = searchUrl.replace("https://jakarta.ee/specifications/bean-validation/3.0",
+				"https://jakarta.ee/specifications/bean-validation/3.1");
 		HttpRequest request = HttpRequest.newBuilder(new URI(searchUrl)).build();
 		HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 		if (response.statusCode() != 200) {

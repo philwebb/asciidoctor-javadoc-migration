@@ -1,0 +1,8 @@
+typeSearchIndex = [
+{"p": "jakarta.transaction", "l": "Inject" },
+{"p": "jakarta.transaction", "l": "Named" },
+{"p": "jakarta.transaction", "l": "Provider" },
+{"p": "jakarta.transaction", "l": "Qualifier" },
+{"p": "jakarta.transaction", "l": "Scope" },
+{"p": "jakarta.transaction", "l": "Singleton" }
+]
