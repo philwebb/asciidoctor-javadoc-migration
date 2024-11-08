@@ -24,7 +24,6 @@ import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,6 +48,12 @@ class JavadocSite {
 		.of(DIR + "spring-boot-project/spring-boot-docs/build/generated/docs/antora-yml/antora.yml");
 
 	static final Pattern ANTORA_JAVADOC_PATTERN = Pattern.compile("(url-.+-javadoc):(.*)$");
+
+	static final Pattern ALL_CLASSES_LI_PATTERN = Pattern.compile("<li>(.+?)<\\/li>");
+
+	static final Pattern ALL_CLASSES_A_PATTERN = Pattern.compile("<a href=[\"'](.+?)[\"'].*?>(.*)<\\/a>");
+
+	static final Pattern INNER_TAG_PATTERN = Pattern.compile("<.*?>(.+)<\\/");
 
 	static final PathMatcher htmlMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.html");
 
@@ -107,51 +112,75 @@ class JavadocSite {
 	}
 
 	private void addUrl(HttpClient httpClient, String url, String location) throws Exception {
+		try {
+			addUrlViaSearchElements(httpClient, url, location);
+		}
+		catch (BadStatusCodeException ex) {
+			addUrlViaAllClassesFrame(httpClient, url, location);
+		}
+	}
+
+	private void addUrlViaSearchElements(HttpClient httpClient, String url, String location) throws Exception {
 		String searchUrl = url.replace("https://javadoc.io/doc/", "https://javadoc.io/static/")
 				+ "/type-search-index.js";
-		TypeSearchElement[] elements = getElements(httpClient, searchUrl);
+		String body = getBody(httpClient, searchUrl).replace("typeSearchIndex = ", "");
+		TypeSearchElement[] elements = this.reader.readValue(body, TypeSearchElement[].class);
 		for (TypeSearchElement element : elements) {
 			String packageName = element.p();
 			String className = element.l().replace(".", "$");
 			if (packageName != null && !packageName.isEmpty() && className != null && !className.isEmpty()) {
-				add(className, location + packageName + "." + className);
-				add(packageName + "." + className, location + packageName + "." + className);
-				if (className.contains("$")) {
-					add(className.replace("$", "."), location + packageName + "." + className);
-					add(packageName + "." + className.replace("$", "."), location + packageName + "." + className);
-				}
+				add(location, packageName, className);
 			}
 		}
-
 	}
 
-	private TypeSearchElement[] getElements(HttpClient httpClient, String searchUrl)
-			throws URISyntaxException, IOException, InterruptedException {
-		if (searchUrl.startsWith("https://r2dbc.io/spec")) {
-			// No search with r2dbc
-			return R2DBC.elements();
+	private void addUrlViaAllClassesFrame(HttpClient httpClient, String url, String location) throws Exception {
+		url = url.replace("https://javadoc.io/doc/", "https://javadoc.io/static/");
+		String allClassesUrl = url + "/allclasses-frame.html";
+		String body = getBody(httpClient, allClassesUrl);
+		URI uri = new URI(allClassesUrl);
+		String schemeAndHost = uri.getScheme() + "://" + uri.getHost();
+		String prefix = url.substring(schemeAndHost.length()) + "/";
+		Matcher listItemMatcher = ALL_CLASSES_LI_PATTERN.matcher(body);
+		while (listItemMatcher.find()) {
+			String listItem = listItemMatcher.group(1);
+			Matcher anchorMatcher = ALL_CLASSES_A_PATTERN.matcher(listItem);
+			if (anchorMatcher.find()) {
+				String href = anchorMatcher.group(1);
+				String text = anchorMatcher.group(2);
+				Matcher innerTagMatcher = INNER_TAG_PATTERN.matcher(text);
+				if (innerTagMatcher.find()) {
+					text = innerTagMatcher.group(1);
+				}
+				if (href.endsWith(".html")) {
+					href = href.substring(0, href.length() - 5);
+				}
+				if (href.startsWith(prefix)) {
+					href = href.substring(prefix.length());
+				}
+				int lastSlash = href.lastIndexOf('/');
+				String packageName = href.substring(0, lastSlash).replace('/', '.');
+				String className = text.replace(".", "$");
+				add(location, packageName, className);
+			}
 		}
-		String body = getElementsBody(httpClient, searchUrl).replace("typeSearchIndex = ", "");
-		TypeSearchElement[] elements = this.reader.readValue(body, TypeSearchElement[].class);
-		return elements;
 	}
 
-	private String getElementsBody(HttpClient httpClient, String searchUrl)
+	private void add(String location, String packageName, String className) {
+		add(className, location + packageName + "." + className);
+		add(packageName + "." + className, location + packageName + "." + className);
+		if (className.contains("$")) {
+			add(className.replace("$", "."), location + packageName + "." + className);
+			add(packageName + "." + className.replace("$", "."), location + packageName + "." + className);
+		}
+	}
+
+	private String getBody(HttpClient httpClient, String searchUrl)
 			throws URISyntaxException, IOException, InterruptedException {
-		if (searchUrl.startsWith("https://jakarta.ee/specifications/transactions")) {
-			return new String(getClass().getResourceAsStream("/jakarta-transactions.site").readAllBytes(),
-					StandardCharsets.UTF_8);
-		}
-		if (searchUrl.startsWith("https://jakarta.ee/specifications/dependency-injection")) {
-			return new String(getClass().getResourceAsStream("/jakarta-injection.site").readAllBytes(),
-					StandardCharsets.UTF_8);
-		}
-		searchUrl = searchUrl.replace("https://jakarta.ee/specifications/bean-validation/3.0",
-				"https://jakarta.ee/specifications/bean-validation/3.1");
 		HttpRequest request = HttpRequest.newBuilder(new URI(searchUrl)).build();
 		HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 		if (response.statusCode() != 200) {
-			throw new IllegalStateException("Bad status " + response.statusCode());
+			throw new BadStatusCodeException(response);
 		}
 		return response.body();
 	}
