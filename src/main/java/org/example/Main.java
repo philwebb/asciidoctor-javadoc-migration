@@ -5,16 +5,29 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Main {
+
+	static final String DIR = "/Users/pwebb/projects/spring-boot/code/3.3.x/";
+
+	static final Path JAVADOC_SITE_PATH = Path.of(DIR + "spring-boot-project/spring-boot-docs/build/site/api/java");
+
+	static final Path ANTORA_SOURCE_PATH = Path
+		.of(DIR + "spring-boot-project/spring-boot-docs/src/docs/antora/modules");
+
+	static final Path ANTORA_YAML_PATH = Path
+		.of(DIR + "spring-boot-project/spring-boot-docs/build/generated/docs/antora-yml/antora.yml");
+
+	static final Pattern javadocLocationPattern = Pattern.compile("javadoc-location-(.+):(.*)$");
 
 	static final Pattern xrefPattern = Pattern.compile("xref:api:java\\/([^\\.]+)/(.*?)\\.html(#[^\\[]+)?\\[(.*?)\\]");
 
@@ -55,18 +68,37 @@ public class Main {
 		COMMON_CLASS_NAMES = Collections.unmodifiableMap(names);
 	}
 
-	static JavadocSite javadocSite = new JavadocSite();
+	private final JavadocSite javadocSite;
 
-	public static void main(String[] args) throws Exception {
-		String path = "/Users/pwebb/projects/spring-boot/code/3.3.x/spring-boot-project/spring-boot-docs/src/docs/antora/modules";
-		Files.find(Paths.get(path), Integer.MAX_VALUE, Main::shouldMigrate).forEach(Main::migrate);
+	private final Set<String> knownPackages;
+
+	private Main() throws IOException {
+		List<String> antoraYaml = Files.readAllLines(ANTORA_YAML_PATH);
+		this.knownPackages = getKnownPackages(antoraYaml);
+		this.javadocSite = new JavadocSite(antoraYaml, ANTORA_SOURCE_PATH);
 	}
 
-	private static boolean shouldMigrate(Path path, BasicFileAttributes attributes) {
+	private Set<String> getKnownPackages(List<String> antoraYaml) {
+		Set<String> packages = new HashSet<>();
+		for (String line : antoraYaml) {
+			Matcher matcher = javadocLocationPattern.matcher(line);
+			if (matcher.find()) {
+				packages.add(matcher.group(1).trim().replace("-", "."));
+			}
+		}
+		System.out.println(packages);
+		return packages;
+	}
+
+	private void run(String[] args) throws IOException {
+		Files.find(ANTORA_SOURCE_PATH, Integer.MAX_VALUE, this::shouldMigrate).forEach(this::migrate);
+	}
+
+	private boolean shouldMigrate(Path path, BasicFileAttributes attributes) {
 		return adocMatcher.matches(path) && !path.getFileName().toString().startsWith("nav-");
 	}
 
-	public static void migrate(Path path) {
+	public void migrate(Path path) {
 		try {
 			System.out.println("Considering " + path);
 			String content = Files.readString(path);
@@ -84,14 +116,14 @@ public class Main {
 		}
 	}
 
-	public static String replace(String content) {
+	public String replace(String content) {
 		String result = content;
 		result = replaceXrefs(result);
 		result = replaceClassNames(result);
 		return (!result.toString().equals(content)) ? result.toString() : null;
 	}
 
-	private static String replaceXrefs(String content) {
+	private String replaceXrefs(String content) {
 		Matcher matcher = xrefPattern.matcher(content);
 		StringBuffer result = new StringBuffer();
 		while (matcher.find()) {
@@ -114,16 +146,13 @@ public class Main {
 		return result.toString();
 	}
 
-	private static String replaceClassNames(String content) {
+	private String replaceClassNames(String content) {
 		Matcher matcher = classNamePattern.matcher(content);
 		StringBuffer result = new StringBuffer();
 		while (matcher.find()) {
 			String name = matcher.group(2);
 			String replacement = matcher.group();
 			if (isLikelyClassName(name)) {
-				if (name.endsWith("!!")) {
-					return name.substring(0, name.length() - 2);
-				}
 				boolean annotation = name.startsWith("@");
 				if (annotation) {
 					name = name.substring(1);
@@ -132,7 +161,7 @@ public class Main {
 				else {
 					name = COMMON_CLASS_NAMES.getOrDefault(name, name);
 				}
-				List<String> lookup = javadocSite.lookup(name);
+				List<String> lookup = this.javadocSite.lookup(name);
 				if (lookup != null) {
 					if (lookup.size() > 1) {
 						throw new RuntimeException("Fix the ambigious " + lookup);
@@ -153,6 +182,10 @@ public class Main {
 	private static boolean isLikelyClassName(String name) {
 		return name.startsWith("org.springframework.boot.") || name.startsWith("@")
 				|| Character.isUpperCase(name.charAt(0));
+	}
+
+	public static void main(String[] args) throws Exception {
+		new Main().run(args);
 	}
 
 }

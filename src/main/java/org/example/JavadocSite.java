@@ -40,22 +40,15 @@ import com.fasterxml.jackson.databind.ObjectReader;
 
 class JavadocSite {
 
-	static final String DIR = "/Users/pwebb/projects/spring-boot/code/3.3.x/";
+	static final Pattern javadocPattern = Pattern.compile("(url-.+-javadoc):(.*)$");
 
-	static final Path JAVADOC_SITE_PATH = Path.of(DIR + "spring-boot-project/spring-boot-docs/build/site/api/java");
+	static final Pattern versionPattern = Pattern.compile("(version-.+):(.*)$");
 
-	static final Path ANTORA_YAML_PATH = Path
-		.of(DIR + "spring-boot-project/spring-boot-docs/build/generated/docs/antora-yml/antora.yml");
+	static final Pattern allClassesListItemPattern = Pattern.compile("<li>(.+?)<\\/li>");
 
-	static final Pattern ANTORA_JAVADOC_PATTERN = Pattern.compile("(url-.+-javadoc):(.*)$");
+	static final Pattern allClassesAnchorPattern = Pattern.compile("<a href=[\"'](.+?)[\"'].*?>(.*)<\\/a>");
 
-	static final Pattern ANTORA_VERSION_PATTERN = Pattern.compile("(version-.+):(.*)$");
-
-	static final Pattern ALL_CLASSES_LI_PATTERN = Pattern.compile("<li>(.+?)<\\/li>");
-
-	static final Pattern ALL_CLASSES_A_PATTERN = Pattern.compile("<a href=[\"'](.+?)[\"'].*?>(.*)<\\/a>");
-
-	static final Pattern INNER_TAG_PATTERN = Pattern.compile("<.*?>(.+)<\\/");
+	static final Pattern innerTagPattern = Pattern.compile("<.*?>(.+)<\\/");
 
 	static final PathMatcher htmlMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.html");
 
@@ -63,20 +56,20 @@ class JavadocSite {
 
 	private final ObjectReader reader;
 
-	JavadocSite() {
+	JavadocSite(List<String> antoraYaml, Path javadocSitePath) {
 		try {
 			this.reader = new ObjectMapper().reader();
-			addSite();
-			addUrls();
+			addSite(javadocSitePath);
+			addUrls(antoraYaml);
 		}
 		catch (Exception ex) {
 			throw new IllegalStateException(ex);
 		}
 	}
 
-	private void addSite() throws IOException {
-		Files.find(JAVADOC_SITE_PATH, Integer.MAX_VALUE, (path, attr) -> htmlMatcher.matches(path)).forEach((page) -> {
-			Path relative = JAVADOC_SITE_PATH.relativize(page);
+	private void addSite(Path javadocSitePath) throws IOException {
+		Files.find(javadocSitePath, Integer.MAX_VALUE, (path, attr) -> htmlMatcher.matches(path)).forEach((page) -> {
+			Path relative = javadocSitePath.relativize(page);
 			if (Character.isUpperCase(relative.getFileName().toString().charAt(0))
 					&& !relative.toString().contains("-")) {
 				String className = relative.getFileName().toString().replace(".html", "").replace('.', '$');
@@ -91,20 +84,19 @@ class JavadocSite {
 		});
 	}
 
-	private void addUrls() throws Exception {
+	private void addUrls(List<String> antoraYaml) throws Exception {
 		HttpClient httpClient = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
-		List<String> yaml = Files.readAllLines(ANTORA_YAML_PATH);
 		Map<String, String> versions = new HashMap<>();
-		for (String line : yaml) {
-			Matcher versionMatcher = ANTORA_VERSION_PATTERN.matcher(line);
+		for (String line : antoraYaml) {
+			Matcher versionMatcher = versionPattern.matcher(line);
 			if (versionMatcher.find()) {
 				String name = versionMatcher.group(1).trim();
 				String version = versionMatcher.group(2).trim();
 				versions.put(name, version);
 			}
 		}
-		for (String line : yaml) {
-			Matcher javaDocMatcher = ANTORA_JAVADOC_PATTERN.matcher(line);
+		for (String line : antoraYaml) {
+			Matcher javaDocMatcher = javadocPattern.matcher(line);
 			if (javaDocMatcher.find()) {
 				String name = javaDocMatcher.group(1).trim();
 				String url = expand(javaDocMatcher.group(2).trim(), versions);
@@ -159,14 +151,14 @@ class JavadocSite {
 		URI uri = new URI(allClassesUrl);
 		String schemeAndHost = uri.getScheme() + "://" + uri.getHost();
 		String prefix = url.substring(schemeAndHost.length()) + "/";
-		Matcher listItemMatcher = ALL_CLASSES_LI_PATTERN.matcher(body);
+		Matcher listItemMatcher = allClassesListItemPattern.matcher(body);
 		while (listItemMatcher.find()) {
 			String listItem = listItemMatcher.group(1);
-			Matcher anchorMatcher = ALL_CLASSES_A_PATTERN.matcher(listItem);
+			Matcher anchorMatcher = allClassesAnchorPattern.matcher(listItem);
 			if (anchorMatcher.find()) {
 				String href = anchorMatcher.group(1);
 				String text = anchorMatcher.group(2);
-				Matcher innerTagMatcher = INNER_TAG_PATTERN.matcher(text);
+				Matcher innerTagMatcher = innerTagPattern.matcher(text);
 				if (innerTagMatcher.find()) {
 					text = innerTagMatcher.group(1);
 				}
@@ -185,6 +177,7 @@ class JavadocSite {
 	}
 
 	private void add(String location, String packageName, String className) {
+
 		add(className, location + packageName + "." + className);
 		add(packageName + "." + className, location + packageName + "." + className);
 		if (className.contains("$")) {
@@ -222,10 +215,6 @@ class JavadocSite {
 
 	public List<String> lookup(String name) {
 		return this.lookup.get(name);
-	}
-
-	public static void main(String[] args) {
-		new JavadocSite();
 	}
 
 }
