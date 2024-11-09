@@ -30,8 +30,10 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,6 +45,8 @@ class JavadocSite {
 	static final Pattern javadocPattern = Pattern.compile("(url-.+-javadoc):(.*)$");
 
 	static final Pattern versionPattern = Pattern.compile("(version-.+):(.*)$");
+
+	static final Pattern javadocLocationPattern = Pattern.compile("javadoc-location-(.+):(.*)$");
 
 	static final Pattern allClassesListItemPattern = Pattern.compile("<li>(.+?)<\\/li>");
 
@@ -86,6 +90,13 @@ class JavadocSite {
 
 	private void addUrls(List<String> antoraYaml) throws Exception {
 		HttpClient httpClient = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
+		Set<String> knownPackages = new HashSet<>();
+		for (String line : antoraYaml) {
+			Matcher matcher = javadocLocationPattern.matcher(line);
+			if (matcher.find()) {
+				knownPackages.add(matcher.group(1).trim().replace("-", "."));
+			}
+		}
 		Map<String, String> versions = new HashMap<>();
 		for (String line : antoraYaml) {
 			Matcher versionMatcher = versionPattern.matcher(line);
@@ -105,7 +116,7 @@ class JavadocSite {
 				}
 				String location = "{" + name + "}/";
 				try {
-					addUrl(httpClient, url, location);
+					addUrl(knownPackages, httpClient, url, location);
 				}
 				catch (Exception ex) {
 					throw new IllegalStateException("Unable to add " + url, ex);
@@ -114,19 +125,20 @@ class JavadocSite {
 		}
 	}
 
-	private void addUrl(HttpClient httpClient, String url, String location) throws Exception {
+	private void addUrl(Set<String> knownPackages, HttpClient httpClient, String url, String location)
+			throws Exception {
 		try {
-			addUrlViaSearchElements(httpClient, url, location);
+			addUrlViaSearchElements(knownPackages, httpClient, url, location);
 		}
 		catch (BadStatusCodeException ex) {
-			addUrlViaAllClassesFrame(httpClient, url, location);
+			addUrlViaAllClassesFrame(knownPackages, httpClient, url, location);
 		}
 	}
 
-	private void addUrlViaSearchElements(HttpClient httpClient, String url, String location) throws Exception {
+	private void addUrlViaSearchElements(Set<String> knownPackages, HttpClient httpClient, String url, String location)
+			throws Exception {
 		String searchUrl = url.replace("https://javadoc.io/doc/", "https://javadoc.io/static/")
 				+ "/type-search-index.js";
-		System.out.println(searchUrl);
 		String body = getBody(httpClient, searchUrl).replace("typeSearchIndex = ", "");
 		try {
 			TypeSearchElement[] elements = this.reader.readValue(body, TypeSearchElement[].class);
@@ -134,7 +146,7 @@ class JavadocSite {
 				String packageName = element.p();
 				String className = element.l().replace(".", "$");
 				if (packageName != null && !packageName.isEmpty() && className != null && !className.isEmpty()) {
-					add(location, packageName, className);
+					add(knownPackages, location, packageName, className);
 				}
 			}
 		}
@@ -144,7 +156,8 @@ class JavadocSite {
 		}
 	}
 
-	private void addUrlViaAllClassesFrame(HttpClient httpClient, String url, String location) throws Exception {
+	private void addUrlViaAllClassesFrame(Set<String> knownPackages, HttpClient httpClient, String url, String location)
+			throws Exception {
 		url = url.replace("https://javadoc.io/doc/", "https://javadoc.io/static/");
 		String allClassesUrl = url + "/allclasses-frame.html";
 		String body = getBody(httpClient, allClassesUrl);
@@ -171,19 +184,30 @@ class JavadocSite {
 				int lastSlash = href.lastIndexOf('/');
 				String packageName = href.substring(0, lastSlash).replace('/', '.');
 				String className = text.replace(".", "$");
-				add(location, packageName, className);
+				add(knownPackages, location, packageName, className);
 			}
 		}
 	}
 
-	private void add(String location, String packageName, String className) {
-
+	private void add(Set<String> knownPackages, String location, String packageName, String className) {
+		if (isKnownPackage(knownPackages, packageName)) {
+			location = "";
+		}
 		add(className, location + packageName + "." + className);
 		add(packageName + "." + className, location + packageName + "." + className);
 		if (className.contains("$")) {
 			add(className.replace("$", "."), location + packageName + "." + className);
 			add(packageName + "." + className.replace("$", "."), location + packageName + "." + className);
 		}
+	}
+
+	private boolean isKnownPackage(Set<String> knownPackages, String packageName) {
+		for (String knownPackage : knownPackages) {
+			if (packageName.startsWith(knownPackage)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private String getBody(HttpClient httpClient, String searchUrl)

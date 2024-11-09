@@ -8,10 +8,8 @@ import java.nio.file.PathMatcher;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,8 +24,6 @@ public class Main {
 
 	static final Path ANTORA_YAML_PATH = Path
 		.of(DIR + "spring-boot-project/spring-boot-docs/build/generated/docs/antora-yml/antora.yml");
-
-	static final Pattern javadocLocationPattern = Pattern.compile("javadoc-location-(.+):(.*)$");
 
 	static final Pattern xrefPattern = Pattern.compile("xref:api:java\\/([^\\.]+)/(.*?)\\.html(#[^\\[]+)?\\[(.*?)\\]");
 
@@ -70,24 +66,9 @@ public class Main {
 
 	private final JavadocSite javadocSite;
 
-	private final Set<String> knownPackages;
-
 	private Main() throws IOException {
 		List<String> antoraYaml = Files.readAllLines(ANTORA_YAML_PATH);
-		this.knownPackages = getKnownPackages(antoraYaml);
 		this.javadocSite = new JavadocSite(antoraYaml, ANTORA_SOURCE_PATH);
-	}
-
-	private Set<String> getKnownPackages(List<String> antoraYaml) {
-		Set<String> packages = new HashSet<>();
-		for (String line : antoraYaml) {
-			Matcher matcher = javadocLocationPattern.matcher(line);
-			if (matcher.find()) {
-				packages.add(matcher.group(1).trim().replace("-", "."));
-			}
-		}
-		System.out.println(packages);
-		return packages;
 	}
 
 	private void run(String[] args) throws IOException {
@@ -168,6 +149,9 @@ public class Main {
 					}
 					replacement = matcher.group(1)
 							+ "javadoc:%s[%s]".formatted(lookup.get(0), (!annotation) ? "" : "format=annotation");
+					if (replacement.contains("{")) {
+						System.err.println(replacement);
+					}
 				}
 				else {
 					// System.err.println("No idea about " + name);
