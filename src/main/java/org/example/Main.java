@@ -50,6 +50,8 @@ public class Main {
 		names.put("PropertySource", "org.springframework.core.env.PropertySource");
 		names.put("DataSource", "javax.sql.DataSource");
 		names.put("RestClient", "org.springframework.web.client.RestClient");
+		names.put("Map", "java.util.Map");
+		names.put("List", "java.util.List");
 		COMMON_CLASS_NAMES = Collections.unmodifiableMap(names);
 	}
 

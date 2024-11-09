@@ -49,6 +49,8 @@ class JavadocSite {
 
 	static final Pattern ANTORA_JAVADOC_PATTERN = Pattern.compile("(url-.+-javadoc):(.*)$");
 
+	static final Pattern ANTORA_VERSION_PATTERN = Pattern.compile("(version-.+):(.*)$");
+
 	static final Pattern ALL_CLASSES_LI_PATTERN = Pattern.compile("<li>(.+?)<\\/li>");
 
 	static final Pattern ALL_CLASSES_A_PATTERN = Pattern.compile("<a href=[\"'](.+?)[\"'].*?>(.*)<\\/a>");
@@ -92,11 +94,20 @@ class JavadocSite {
 	private void addUrls() throws Exception {
 		HttpClient httpClient = HttpClient.newBuilder().followRedirects(Redirect.ALWAYS).build();
 		List<String> yaml = Files.readAllLines(ANTORA_YAML_PATH);
+		Map<String, String> versions = new HashMap<>();
 		for (String line : yaml) {
-			Matcher matcher = ANTORA_JAVADOC_PATTERN.matcher(line);
-			if (matcher.find()) {
-				String name = matcher.group(1).trim();
-				String url = expand(matcher.group(2).trim());
+			Matcher versionMatcher = ANTORA_VERSION_PATTERN.matcher(line);
+			if (versionMatcher.find()) {
+				String name = versionMatcher.group(1).trim();
+				String version = versionMatcher.group(2).trim();
+				versions.put(name, version);
+			}
+		}
+		for (String line : yaml) {
+			Matcher javaDocMatcher = ANTORA_JAVADOC_PATTERN.matcher(line);
+			if (javaDocMatcher.find()) {
+				String name = javaDocMatcher.group(1).trim();
+				String url = expand(javaDocMatcher.group(2).trim(), versions);
 				if (name.startsWith("url-spring-boot-")) {
 					continue;
 				}
@@ -123,14 +134,21 @@ class JavadocSite {
 	private void addUrlViaSearchElements(HttpClient httpClient, String url, String location) throws Exception {
 		String searchUrl = url.replace("https://javadoc.io/doc/", "https://javadoc.io/static/")
 				+ "/type-search-index.js";
+		System.out.println(searchUrl);
 		String body = getBody(httpClient, searchUrl).replace("typeSearchIndex = ", "");
-		TypeSearchElement[] elements = this.reader.readValue(body, TypeSearchElement[].class);
-		for (TypeSearchElement element : elements) {
-			String packageName = element.p();
-			String className = element.l().replace(".", "$");
-			if (packageName != null && !packageName.isEmpty() && className != null && !className.isEmpty()) {
-				add(location, packageName, className);
+		try {
+			TypeSearchElement[] elements = this.reader.readValue(body, TypeSearchElement[].class);
+			for (TypeSearchElement element : elements) {
+				String packageName = element.p();
+				String className = element.l().replace(".", "$");
+				if (packageName != null && !packageName.isEmpty() && className != null && !className.isEmpty()) {
+					add(location, packageName, className);
+				}
 			}
+		}
+		catch (Exception ex) {
+			System.out.println(body);
+			throw ex;
 		}
 	}
 
@@ -185,18 +203,17 @@ class JavadocSite {
 		return response.body();
 	}
 
-	private String expand(String url) {
-		return url.replace("{version-spring-data-commons}", "current")
-			.replace("{version-spring-data-jpa}", "current")
-			.replace("{version-spring-data-mongodb}", "current")
-			.replace("{version-spring-data-rest}", "current")
-			.replace("{version-spring-data-r2dbc}", "current")
-			.replace("{version-spring-data-cassandra}", "current")
-			.replace("{version-spring-data-couchbase}", "current")
-			.replace("{version-spring-data-elasticsearch}", "current")
-			.replace("{version-spring-data-neo4j}", "current")
-			.replace("https://docs.spring.io/spring-hateoas/docs/2.3.1",
-					"https://docs.spring.io/spring-hateoas/docs/current");
+	private String expand(String url, Map<String, String> versions) {
+		for (Map.Entry<String, String> entry : versions.entrySet()) {
+			url = url.replace("{" + entry.getKey() + "}", entry.getValue());
+		}
+		url = url.replace("https://javadoc.io/doc/io.micrometer/micrometer-core/1.13.7-SNAPSHOT",
+				"https://javadoc.io/doc/io.micrometer/micrometer-core/1.13.6");
+		url = url.replace("https://javadoc.io/doc/io.micrometer/micrometer-tracing/1.3.6-SNAPSHOT",
+				"https://javadoc.io/doc/io.micrometer/micrometer-tracing/1.3.5");
+		url = url.replace("https://javadoc.io/doc/com.fasterxml.jackson.core/jackson-annotations/2.17.3",
+				"https://javadoc.io/doc/com.fasterxml.jackson.core/jackson-annotations/2.17.2");
+		return url;
 	}
 
 	private void add(String key, String value) {
