@@ -68,7 +68,7 @@ public class Main {
 
 	private Main() throws IOException {
 		List<String> antoraYaml = Files.readAllLines(ANTORA_YAML_PATH);
-		this.javadocSite = new JavadocSite(antoraYaml, ANTORA_SOURCE_PATH);
+		this.javadocSite = new JavadocSite(antoraYaml, JAVADOC_SITE_PATH);
 	}
 
 	private void run(String[] args) throws IOException {
@@ -149,12 +149,11 @@ public class Main {
 					}
 					replacement = matcher.group(1)
 							+ "javadoc:%s[%s]".formatted(lookup.get(0), (!annotation) ? "" : "format=annotation");
-					if (replacement.contains("{")) {
-						System.err.println(replacement);
-					}
 				}
 				else {
-					// System.err.println("No idea about " + name);
+					if (!name.startsWith("My")) {
+						System.err.println("No idea about " + name);
+					}
 				}
 			}
 			matcher.appendReplacement(result, replacement.replace("$", "\\$"));
