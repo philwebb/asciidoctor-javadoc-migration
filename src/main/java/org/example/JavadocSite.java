@@ -230,6 +230,8 @@ class JavadocSite {
 				"https://javadoc.io/doc/io.micrometer/micrometer-tracing/1.3.5");
 		url = url.replace("https://javadoc.io/doc/com.fasterxml.jackson.core/jackson-annotations/2.17.3",
 				"https://javadoc.io/doc/com.fasterxml.jackson.core/jackson-annotations/2.17.2");
+		url = url.replace("https://logging.apache.org/log4j/2.x/javadoc/log4j-api/index.html",
+				"https://javadoc.io/doc/org.apache.logging.log4j/log4j-api/2.20.0");
 		url = url.replace("https://logging.apache.org/log4j/2.x/javadoc/log4j-core/index.html",
 				"https://javadoc.io/doc/org.apache.logging.log4j/log4j-core/2.20.0");
 		return url;
