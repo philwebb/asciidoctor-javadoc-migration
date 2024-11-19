@@ -190,7 +190,7 @@ class JavadocSite {
 	}
 
 	private void add(Set<String> knownPackages, String location, String packageName, String className) {
-		if (isKnownPackage(knownPackages, packageName)) {
+		if (isKnownPackage(knownPackages, packageName) && !isTestContainerSplitPackageJar(packageName)) {
 			location = "";
 		}
 		add(className, location + packageName + "." + className);
@@ -199,6 +199,10 @@ class JavadocSite {
 			add(className.replace("$", "."), location + packageName + "." + className);
 			add(packageName + "." + className.replace("$", "."), location + packageName + "." + className);
 		}
+	}
+
+	private boolean isTestContainerSplitPackageJar(String packageName) {
+		return packageName.startsWith("org.testcontainers.containers");
 	}
 
 	private boolean isKnownPackage(Set<String> knownPackages, String packageName) {

@@ -153,8 +153,10 @@ public class Main {
 					if (lookup.size() > 1) {
 						throw new RuntimeException("Fix the ambigious " + lookup);
 					}
-					replacement = matcher.group(1)
-							+ "javadoc:%s[%s]".formatted(lookup.get(0), (!annotation) ? "" : "format=annotation");
+					String fullyQualifiedName = lookup.get(0);
+					String prefix = matcher.group(1);
+					replacement = prefix
+							+ "javadoc:%s[%s]".formatted(fullyQualifiedName, (!annotation) ? "" : "format=annotation");
 				}
 				else {
 					if (!name.startsWith("My")) {
@@ -169,10 +171,10 @@ public class Main {
 	}
 
 	private static boolean isLikelyClassName(String name) {
-		if ("Dockerfile".equals(name) || "Procfile".equals(name)) {
+		if ("Dockerfile".equals(name) || "Procfile".equals(name) || "SpEL".equals(name) || "MockK".equals(name)) {
 			return false;
 		}
-		return name.startsWith("org.springframework.boot.")
+		return name.startsWith("org.springframework.boot.") || name.startsWith("org.testcontainers.")
 				|| (name.length() >= 2 && name.startsWith("@") && Character.isUpperCase(name.charAt(1)))
 				|| (Character.isUpperCase(name.charAt(0)) && !name.equals(name.toUpperCase()));
 	}
