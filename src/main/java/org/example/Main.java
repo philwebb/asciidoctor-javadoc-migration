@@ -46,6 +46,7 @@ public class Main {
 		names.put("PropertySource", "org.springframework.context.annotation.PropertySource");
 		names.put("Repository", "org.springframework.stereotype.Repository");
 		names.put("RequestMapping", "org.springframework.web.bind.annotation.RequestMapping");
+		names.put("ResponseBody", "org.springframework.web.bind.annotation.ResponseBody");
 		names.put("Service", "org.springframework.stereotype.Service");
 		names.put("Value", "org.springframework.beans.factory.annotation.Value");
 		COMMON_ANNOTATION_NAMES = Collections.unmodifiableMap(names);
@@ -62,6 +63,7 @@ public class Main {
 		names.put("Filter", "jakarta.servlet.Filter");
 		names.put("List", "java.util.List");
 		names.put("Map", "java.util.Map");
+		names.put("ObjectMapper", "com.fasterxml.jackson.databind.ObjectMapper");
 		names.put("PropertySource", "org.springframework.core.env.PropertySource");
 		names.put("ReactorResourceFactory", "org.springframework.http.client.ReactorResourceFactory");
 		names.put("RestClient", "org.springframework.web.client.RestClient");
