@@ -34,33 +34,39 @@ public class Main {
 	private static final Map<String, String> COMMON_ANNOTATION_NAMES;
 	static {
 		Map<String, String> names = new HashMap<>();
-		names.put("Controller", "org.springframework.stereotype.Controller");
 		names.put("Component", "org.springframework.stereotype.Component");
-		names.put("Service", "org.springframework.stereotype.Service");
-		names.put("Repository", "org.springframework.stereotype.Repository");
-		names.put("RequestMapping", "org.springframework.web.bind.annotation.RequestMapping");
 		names.put("Configuration", "org.springframework.context.annotation.Configuration");
-		names.put("Value", "org.springframework.beans.factory.annotation.Value");
-		names.put("Entity", "jakarta.persistence.Entity");
-		names.put("PropertySource", "org.springframework.context.annotation.PropertySource");
+		names.put("Conditional", "org.springframework.context.annotation.Conditional");
+		names.put("Controller", "org.springframework.stereotype.Controller");
 		names.put("DurationUnit", "org.springframework.boot.convert.DurationUnit");
 		names.put("Endpoint", "org.springframework.boot.actuate.endpoint.annotation.Endpoint");
+		names.put("Entity", "jakarta.persistence.Entity");
+		names.put("Import", "org.springframework.context.annotation.Import");
 		names.put("Order", "org.springframework.core.annotation.Order");
+		names.put("PropertySource", "org.springframework.context.annotation.PropertySource");
+		names.put("Repository", "org.springframework.stereotype.Repository");
+		names.put("RequestMapping", "org.springframework.web.bind.annotation.RequestMapping");
+		names.put("Service", "org.springframework.stereotype.Service");
+		names.put("Value", "org.springframework.beans.factory.annotation.Value");
 		COMMON_ANNOTATION_NAMES = Collections.unmodifiableMap(names);
 	}
 
 	private static final Map<String, String> COMMON_CLASS_NAMES;
 	static {
 		Map<String, String> names = new HashMap<>();
+		names.put("ApplicationContext", "org.springframework.context.ApplicationContext");
+		names.put("BeanFactory", "org.springframework.beans.factory.BeanFactory");
+		names.put("Binder", "org.springframework.boot.context.properties.bind.Binder");
+		names.put("DataSource", "javax.sql.DataSource");
 		names.put("Environment", "org.springframework.core.env.Environment");
 		names.put("Filter", "jakarta.servlet.Filter");
-		names.put("Binder", "org.springframework.boot.context.properties.bind.Binder");
-		names.put("ReactorResourceFactory", "org.springframework.http.client.ReactorResourceFactory");
-		names.put("PropertySource", "org.springframework.core.env.PropertySource");
-		names.put("DataSource", "javax.sql.DataSource");
-		names.put("RestClient", "org.springframework.web.client.RestClient");
-		names.put("Map", "java.util.Map");
 		names.put("List", "java.util.List");
+		names.put("Map", "java.util.Map");
+		names.put("PropertySource", "org.springframework.core.env.PropertySource");
+		names.put("ReactorResourceFactory", "org.springframework.http.client.ReactorResourceFactory");
+		names.put("RestClient", "org.springframework.web.client.RestClient");
+		names.put("SSLContext", "javax.net.ssl.SSLContext");
+		names.put("ThreadPoolExecutor", "java.util.concurrent.ThreadPoolExecutor");
 		COMMON_CLASS_NAMES = Collections.unmodifiableMap(names);
 	}
 
@@ -163,8 +169,12 @@ public class Main {
 	}
 
 	private static boolean isLikelyClassName(String name) {
-		return name.startsWith("org.springframework.boot.") || name.startsWith("@")
-				|| Character.isUpperCase(name.charAt(0));
+		if ("Dockerfile".equals(name) || "Procfile".equals(name)) {
+			return false;
+		}
+		return name.startsWith("org.springframework.boot.")
+				|| (name.length() >= 2 && name.startsWith("@") && Character.isUpperCase(name.charAt(1)))
+				|| (Character.isUpperCase(name.charAt(0)) && !name.equals(name.toUpperCase()));
 	}
 
 	public static void main(String[] args) throws Exception {

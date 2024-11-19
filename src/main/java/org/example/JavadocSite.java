@@ -210,14 +210,36 @@ class JavadocSite {
 		return false;
 	}
 
-	private String getBody(HttpClient httpClient, String searchUrl)
+	private String getBody(HttpClient httpClient, String url)
 			throws URISyntaxException, IOException, InterruptedException {
-		HttpRequest request = HttpRequest.newBuilder(new URI(searchUrl)).build();
+		HttpRequest request = HttpRequest.newBuilder(new URI(url)).build();
+		String key = url.replace(":", "").replace("/", "_").replace(".", "_");
+		Path cache = Path.of("./cache/" + key);
+		if (Files.exists(cache)) {
+			String result = Files.readString(cache);
+			if (result.startsWith("BadStatusCodeException__")) {
+				throw new BadStatusCodeException();
+			}
+			System.out.println("using cache for " + url);
+			return result;
+		}
+		System.out.println("getting " + url);
 		HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
 		if (response.statusCode() != 200) {
-			throw new BadStatusCodeException(response);
+			System.out.println(response.statusCode());
+			write(cache, "BadStatusCodeException__" + response.statusCode());
+			throw new BadStatusCodeException();
 		}
-		return response.body();
+		String body = response.body();
+		write(cache, body);
+		return body;
+	}
+
+	private void write(Path cache, String body) throws IOException {
+		if (!Files.exists(cache.getParent())) {
+			Files.createDirectory(cache.getParent());
+		}
+		Files.writeString(cache, body);
 	}
 
 	private String expand(String url, Map<String, String> versions) {

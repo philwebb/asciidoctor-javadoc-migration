@@ -16,11 +16,9 @@
 
 package org.example;
 
-import java.net.http.HttpResponse;
-
 class BadStatusCodeException extends RuntimeException {
 
-	BadStatusCodeException(HttpResponse<String> response) {
+	BadStatusCodeException() {
 	}
 
 }
