@@ -36,6 +36,7 @@ public class Main {
 		Map<String, String> names = new HashMap<>();
 		names.put("Component", "org.springframework.stereotype.Component");
 		names.put("Configuration", "org.springframework.context.annotation.Configuration");
+		names.put("ConfigurationProperties", "org.springframework.boot.context.properties.ConfigurationProperties");
 		names.put("Conditional", "org.springframework.context.annotation.Conditional");
 		names.put("Controller", "org.springframework.stereotype.Controller");
 		names.put("DurationUnit", "org.springframework.boot.convert.DurationUnit");
@@ -65,6 +66,7 @@ public class Main {
 		names.put("DataSource", "javax.sql.DataSource");
 		names.put("Environment", "org.springframework.core.env.Environment");
 		names.put("Filter", "jakarta.servlet.Filter");
+		names.put("Health", "org.springframework.boot.actuate.health.Health");
 		names.put("List", "java.util.List");
 		names.put("Map", "java.util.Map");
 		names.put("ObjectMapper", "com.fasterxml.jackson.databind.ObjectMapper");
@@ -74,6 +76,7 @@ public class Main {
 		names.put("SSLContext", "javax.net.ssl.SSLContext");
 		names.put("ThreadPoolExecutor", "java.util.concurrent.ThreadPoolExecutor");
 		names.put("Meter", "io.micrometer.core.instrument.Meter");
+		names.put("Gauge", "io.micrometer.core.instrument.Gauge");
 		COMMON_CLASS_NAMES = Collections.unmodifiableMap(names);
 	}
 
@@ -160,10 +163,13 @@ public class Main {
 					if (lookup.size() > 1) {
 						throw new RuntimeException("Fix the ambigious " + lookup);
 					}
-					String fullyQualifiedName = lookup.get(0);
+					String location = lookup.get(0);
 					String prefix = matcher.group(1);
+					if (location.contains("-javadoc}")) {
+						System.err.println(">> " + name + " " + location);
+					}
 					replacement = prefix
-							+ "javadoc:%s[%s]".formatted(fullyQualifiedName, (!annotation) ? "" : "format=annotation");
+							+ "javadoc:%s[%s]".formatted(location, (!annotation) ? "" : "format=annotation");
 				}
 				else {
 					if (!name.startsWith("My")) {
