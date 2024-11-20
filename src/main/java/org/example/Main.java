@@ -49,6 +49,10 @@ public class Main {
 		names.put("ResponseBody", "org.springframework.web.bind.annotation.ResponseBody");
 		names.put("Service", "org.springframework.stereotype.Service");
 		names.put("Value", "org.springframework.beans.factory.annotation.Value");
+		names.put("Profile", "org.springframework.context.annotation.Profile");
+		names.put("WriteOperation", "org.springframework.boot.actuate.endpoint.annotation.WriteOperation");
+		names.put("ReadOperation", "org.springframework.boot.actuate.endpoint.annotation.ReadOperation");
+		names.put("DeleteOperation", "org.springframework.boot.actuate.endpoint.annotation.DeleteOperation");
 		COMMON_ANNOTATION_NAMES = Collections.unmodifiableMap(names);
 	}
 
@@ -69,6 +73,7 @@ public class Main {
 		names.put("RestClient", "org.springframework.web.client.RestClient");
 		names.put("SSLContext", "javax.net.ssl.SSLContext");
 		names.put("ThreadPoolExecutor", "java.util.concurrent.ThreadPoolExecutor");
+		names.put("Meter", "io.micrometer.core.instrument.Meter");
 		COMMON_CLASS_NAMES = Collections.unmodifiableMap(names);
 	}
 
