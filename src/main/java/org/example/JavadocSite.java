@@ -272,6 +272,10 @@ class JavadocSite {
 				"https://javadoc.io/doc/org.apache.logging.log4j/log4j-api/2.20.0");
 		url = url.replace("https://logging.apache.org/log4j/2.x/javadoc/log4j-core/index.html",
 				"https://javadoc.io/doc/org.apache.logging.log4j/log4j-core/2.20.0");
+		url = url.replace("https://javadoc.io/static/com.fasterxml.jackson.core/jackson-databind/2.12.7.1",
+				"https://javadoc.io/static/com.fasterxml.jackson.core/jackson-databind/2.12.7");
+		url = url.replace("https://javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/2.12.7.1",
+				"https://javadoc.io/doc/com.fasterxml.jackson.core/jackson-databind/2.12.7");
 		return url;
 	}
 
