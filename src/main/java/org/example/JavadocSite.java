@@ -127,6 +127,12 @@ class JavadocSite {
 
 	private void addUrl(Set<String> knownPackages, HttpClient httpClient, String url, String location)
 			throws Exception {
+		if (url.contains("artemis-jms-server")) {
+			knownPackages.add("org.apache.activemq.artemis.jms.server.config");
+			add(knownPackages, "", "org.apache.activemq.artemis.jms.server.config", "JMSQueueConfiguration");
+			add(knownPackages, "", "org.apache.activemq.artemis.jms.server.config", "TopicConfiguration");
+			return;
+		}
 		try {
 			addUrlViaSearchElements(knownPackages, httpClient, url, location);
 		}
@@ -190,6 +196,10 @@ class JavadocSite {
 	}
 
 	private void add(Set<String> knownPackages, String location, String packageName, String className) {
+		if (packageName.startsWith("org.springframework.data.r2dbc")
+				&& !location.equals("{url-spring-data-r2dbc-javadoc}/")) {
+			return;
+		}
 		if (isKnownPackage(knownPackages, packageName) && !isTestContainerSplitPackageJar(packageName, className)) {
 			location = "";
 		}

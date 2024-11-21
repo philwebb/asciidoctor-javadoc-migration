@@ -27,7 +27,7 @@ public class Main {
 
 	static final Pattern xrefPattern = Pattern.compile("xref:api:java\\/([^\\.]+)/(.*?)\\.html(#[^\\[]+)?\\[(.*?)\\]");
 
-	static final Pattern classNamePattern = Pattern.compile("([\\s\\n])`([A-Za-z\\.@][A-Za-z\\.]+)`");
+	static final Pattern classNamePattern = Pattern.compile("([\\s\\n])`([A-Za-z\\.@][A-Za-z0-9\\.]+)`");
 
 	static final PathMatcher adocMatcher = FileSystems.getDefault().getPathMatcher("glob:**/*.adoc");
 
@@ -77,6 +77,7 @@ public class Main {
 		names.put("ThreadPoolExecutor", "java.util.concurrent.ThreadPoolExecutor");
 		names.put("Meter", "io.micrometer.core.instrument.Meter");
 		names.put("Gauge", "io.micrometer.core.instrument.Gauge");
+		names.put("ServerProperties", "org.springframework.boot.autoconfigure.web.ServerProperties");
 		COMMON_CLASS_NAMES = Collections.unmodifiableMap(names);
 	}
 
@@ -184,12 +185,23 @@ public class Main {
 	}
 
 	private static boolean isLikelyClassName(String name) {
-		if ("Dockerfile".equals(name) || "Procfile".equals(name) || "SpEL".equals(name) || "MockK".equals(name)) {
+		if (name.length() <= 1 || "Dockerfile".equals(name) || "Procfile".equals(name) || "SpEL".equals(name)
+				|| "MockK".equals(name) || name.endsWith(".properties") || name.endsWith(".yaml")
+				|| name.endsWith(".yml") || name.endsWith(".xml") || name.endsWith(".gradle")) {
 			return false;
 		}
-		return name.startsWith("org.springframework.boot.") || name.startsWith("org.testcontainers.")
+		if (name.startsWith("org.springframework.boot.") || name.startsWith("org.testcontainers.")
 				|| (name.length() >= 2 && name.startsWith("@") && Character.isUpperCase(name.charAt(1)))
-				|| (Character.isUpperCase(name.charAt(0)) && !name.equals(name.toUpperCase()));
+				|| (Character.isUpperCase(name.charAt(0)) && !name.equals(name.toUpperCase()))) {
+			return true;
+		}
+		int lastDot = name.lastIndexOf(".");
+		if (lastDot == -1) {
+			return false;
+		}
+		String beforeLastDot = name.substring(0, lastDot);
+		String afterLastDot = name.substring(lastDot + 1);
+		return (beforeLastDot.toLowerCase().equals(beforeLastDot)) && isLikelyClassName(afterLastDot);
 	}
 
 	public static void main(String[] args) throws Exception {
