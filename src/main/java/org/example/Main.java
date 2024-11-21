@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 
 public class Main {
 
-	static final String DIR = "/Users/pwebb/projects/spring-boot/code/3.3.x/";
+	static final String DIR = "/Users/pwebb/projects/spring-boot/code/3.4.x/";
 
 	static final Path JAVADOC_SITE_PATH = Path.of(DIR + "spring-boot-project/spring-boot-docs/build/site/api/java");
 
