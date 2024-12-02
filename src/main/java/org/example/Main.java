@@ -45,6 +45,7 @@ public class Main {
 		names.put("Import", "org.springframework.context.annotation.Import");
 		names.put("Order", "org.springframework.core.annotation.Order");
 		names.put("PropertySource", "org.springframework.context.annotation.PropertySource");
+		names.put("Qualifier", "org.springframework.beans.factory.annotation.Qualifier");
 		names.put("Repository", "org.springframework.stereotype.Repository");
 		names.put("RequestMapping", "org.springframework.web.bind.annotation.RequestMapping");
 		names.put("ResponseBody", "org.springframework.web.bind.annotation.ResponseBody");
@@ -101,7 +102,7 @@ public class Main {
 			System.out.println("Considering " + path);
 			String content = Files.readString(path);
 			String replacement = replace(content);
-			if (replacement != null && false) {
+			if (replacement != null) {
 				System.out.println(" - writing replacements");
 				Files.writeString(path, replacement);
 			}
